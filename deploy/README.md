@@ -92,6 +92,47 @@ The image intentionally does not bundle Claude/Codex/Gemini CLI binaries. Keep
 those outside the image, or build a separate private runtime layer if a server
 deployment needs local code-agent CLIs installed in the container.
 
+## Bundling Codex for local-agent detection
+
+If OpenDesign should discover and run Codex inside the same container, build the
+optional Codex image instead of using the published image unchanged.
+
+Set these values in `deploy/.env` before starting:
+
+```env
+OPEN_DESIGN_IMAGE=open-design-codex:local
+OPEN_DESIGN_DOCKERFILE=deploy/Dockerfile.codex
+```
+
+Then run:
+
+```bash
+docker compose build --build-arg CODEX_VERSION=latest open-design
+docker compose up -d
+```
+
+The daemon automatically detects CLIs available on `PATH`; no extra Agent
+registration is needed. Verify Codex is visible inside the container:
+
+```bash
+docker compose exec open-design sh -lc 'command -v codex && codex --version'
+```
+
+For authentication, either set `OPENAI_API_KEY` in the private `deploy/.env`,
+or use device-code login inside the container:
+
+```bash
+docker compose exec open-design codex login --device-auth
+```
+
+The Compose file persists Codex credentials in the `codex_auth` named volume
+under `/app/.codex`. The image does not contain credentials. This setup does
+not mount the host filesystem or Docker socket; Codex can access only the data
+and project paths that the container itself can access. The installer and
+updater initialize this volume as UID/GID `1001:1001` before starting the main
+service, so device-code login can write its credential cache without a manual
+permission repair.
+
 ## Linux: mounting host agent CLIs
 
 On Linux you can mount host-installed agent CLIs (Claude Code, opencode, Codex,

@@ -125,6 +125,22 @@ test('update.sh --help exits 0', async () => {
   assert.match(stdout, /--image/);
 });
 
+test('install and update initialize the Codex auth volume before startup', async () => {
+  for (const scriptPath of [installScript, updateScript]) {
+    const source = await readFile(scriptPath, 'utf8');
+    const initialization = source.indexOf('ensure_codex_auth_permissions\n');
+    const startup = source.indexOf(
+      '$COMPOSE_CMD "${COMPOSE_FILES[@]}" up -d --no-build',
+      initialization,
+    );
+
+    assert.notEqual(initialization, -1, `${scriptPath} must initialize Codex auth permissions`);
+    assert.notEqual(startup, -1, `${scriptPath} must start OpenDesign after initialization`);
+    assert.ok(initialization < startup, `${scriptPath} must initialize permissions before startup`);
+    assert.match(source, /chown -R 1001:1001 \/app\/\.codex/);
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Docker integration tests — skipped when Docker is unavailable
 // ---------------------------------------------------------------------------

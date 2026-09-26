@@ -55,6 +55,15 @@ warn()    { printf "  ${YELLOW}!${RESET} %s\n" "$1" >&2; }
 error()   { printf "  ${RED}✗${RESET} %s\n" "$1" >&2; }
 info()    { printf "  ${CYAN}›${RESET} %s\n" "$1"; }
 
+ensure_codex_auth_permissions() {
+  step "Ensuring Codex auth volume permissions..."
+  $COMPOSE_CMD "${COMPOSE_FILES[@]}" run --rm --no-deps \
+    --user root \
+    --entrypoint sh \
+    open-design \
+    -lc 'mkdir -p /app/.codex && chown -R 1001:1001 /app/.codex'
+}
+
 prompt_text() {
   _prompt="$1" _default="$2"
   printf "%s [%s]: " "$_prompt" "$_default" >&2
@@ -427,6 +436,8 @@ ok "Written ${ENV_FILE}"
 # ---------------------------------------------------------------------------
 step "Pulling image: ${IMAGE}"
 $COMPOSE_CMD "${COMPOSE_FILES[@]}" pull
+
+ensure_codex_auth_permissions
 
 step "Starting OpenDesign..."
 $COMPOSE_CMD "${COMPOSE_FILES[@]}" up -d --no-build

@@ -1,0 +1,19 @@
+# Optional local-agent image: keep the published OpenDesign image unchanged
+# while bundling Codex so the daemon can discover it through PATH.
+FROM ghcr.io/nexu-io/od:latest
+
+ARG CODEX_VERSION=latest
+
+USER root
+
+# Codex's workspace-write sandbox uses bubblewrap on Linux.
+RUN apk add --no-cache bubblewrap
+
+# The runtime image is Node-based, so install the official Codex CLI globally.
+# Do not place credentials in this image; provide OPENAI_API_KEY at runtime or
+# log in into the persisted CODEX_HOME volume after the container starts.
+RUN npm install --global "@openai/codex@${CODEX_VERSION}" \
+    && command -v codex \
+    && codex --version
+
+USER open-design

@@ -35,6 +35,15 @@ warn()    { printf "  ${YELLOW}!${RESET} %s\n" "$1" >&2; }
 error()   { printf "  ${RED}✗${RESET} %s\n" "$1" >&2; }
 info()    { printf "  ${CYAN}›${RESET} %s\n" "$1"; }
 
+ensure_codex_auth_permissions() {
+  step "Ensuring Codex auth volume permissions..."
+  $COMPOSE_CMD "${COMPOSE_FILES[@]}" run --rm --no-deps \
+    --user root \
+    --entrypoint sh \
+    open-design \
+    -lc 'mkdir -p /app/.codex && chown -R 1001:1001 /app/.codex'
+}
+
 # ---------------------------------------------------------------------------
 # Detect container runtime
 # ---------------------------------------------------------------------------
@@ -116,6 +125,8 @@ fi
 # Pull latest image
 step "Pulling latest image..."
 $COMPOSE_CMD "${COMPOSE_FILES[@]}" pull
+
+ensure_codex_auth_permissions
 
 # Restart with new image
 step "Restarting service..."

@@ -6,7 +6,9 @@ services:
     image: ${OPEN_DESIGN_IMAGE:-ghcr.io/nexu-io/od:latest}
     build:
       context: ..
-      dockerfile: deploy/Dockerfile
+      dockerfile: ${OPEN_DESIGN_DOCKERFILE:-deploy/Dockerfile}
+      args:
+        CODEX_VERSION: ${CODEX_VERSION:-latest}
     restart: always
     environment:
       NODE_ENV: production
@@ -18,15 +20,26 @@ services:
       OD_API_TOKEN: ${OD_API_TOKEN:-}
       OD_DISABLE_API_AUTH: ${OPEN_DESIGN_DISABLE_API_AUTH:-}
       OD_CODEX_SANDBOX: ${OD_CODEX_SANDBOX:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CODEX_HOME: /app/.codex
     ports:
       - "127.0.0.1:${OPEN_DESIGN_PORT:-7456}:7456"
     volumes:
       - open_design_data:/app/.od
+      - codex_auth:/app/.codex
     read_only: true
     tmpfs:
       - /tmp
+    # Codex workspace-write uses bubblewrap, which creates an unprivileged
+    # user namespace. Docker's default seccomp/AppArmor policies and
+    # no-new-privileges block that namespace even when the host kernel allows it.
+    # SYS_ADMIN is limited to this service; the daemon still runs as the
+    # unprivileged open-design user inside the container.
     security_opt:
-      - no-new-privileges:true
+      - apparmor=unconfined
+      - seccomp=unconfined
+    cap_add:
+      - SYS_ADMIN
     mem_limit: ${OPEN_DESIGN_MEM_LIMIT:-384m}
     pids_limit: 256
     healthcheck:
@@ -44,3 +57,4 @@ services:
 
 volumes:
   open_design_data:
+  codex_auth:
